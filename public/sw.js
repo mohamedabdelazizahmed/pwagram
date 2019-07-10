@@ -1,4 +1,4 @@
-var CACHE_STATIC_NAME = 'static-4';
+var CACHE_STATIC_NAME = 'static-10';
 var CACHE_DYNAMIC_NAME = 'dynamic-4';
 
 //give me access the sw background proceess
@@ -13,6 +13,7 @@ self.addEventListener('install', function (event) {
                 cache.addAll([
                     '/',
                     '/index.html',
+                    '/offline.html',
                     '/src/js/app.js',
                     '/src/js/feed.js',
                     '/src/js/promise.js',
@@ -47,30 +48,85 @@ self.addEventListener('activate', function (event) {
 })
 
 
-self.addEventListener('fetch', function (event) {
-    console.log('[sw] Fetching service worker ...', event);
-    // Retrieving Items from the Cache...
-    event.respondWith(
-        caches.match(event.request)
-            .then(function (response) {
-                if (response) {
-                    return response;
-                } else {
-                    // send the original request
-                    return fetch(event.request)
-                        .then(function (res) {
-                            // create a dynammic cahce
-                            return caches.open(CACHE_DYNAMIC_NAME)
-                                .then(function (cache) {
-                                    cache.put(event.request.url, res.clone());
-                                    return res;
-                                })
-                        })
-                        //Handling Errors
-                        .catch(function (err) {
-                            console.log(err);
-                        });
-                }
-            })
-    )
-})
+// self.addEventListener('fetch', function (event) {
+//     console.log('[sw] Fetching service worker ...', event);
+//     // Retrieving Items from the Cache...
+//     event.respondWith(
+//         caches.match(event.request)
+//             .then(function (response) {
+//                 if (response) {
+//                     return response;
+//                 } else {
+//                     // send the original request
+//                     return fetch(event.request)
+//                         .then(function (res) {
+//                             // create a dynammic cahce
+//                             return caches.open(CACHE_DYNAMIC_NAME)
+//                                 .then(function (cache) {
+//                                     cache.put(event.request.url, res.clone());
+//                                     return res;
+//                                 })
+//                         })
+//                         //Handling Errors
+//                         .catch(function (err) {
+//                             console.log(err);
+//                             // handeling offline page 
+//                             return caches.open(CACHE_STATIC_NAME)
+//                                 .then(function (cache) {
+//                                     return cache.match('/offline.html');
+//                                 });
+//                         });
+//                 }
+//             })
+//     )
+// })
+
+
+
+
+
+
+
+
+
+
+//  078  Strategy Cache Only
+// self.addEventListener('fetch', function (event) {
+//     console.log('[sw] Fetching service worker ...', event);
+//     // Retrieving Items from the Cache...
+//     event.respondWith(
+//         caches.match(event.request)
+//     );
+// })
+
+
+// 079 Strategy Network Only
+// self.addEventListener('fetch', function (event) {
+//     console.log('[sw] Fetching service worker ...', event);
+//     event.respondWith(
+//         fetch(event.request)
+//     );
+// })
+
+
+
+
+//  080 Strategy Network with Cache Fallback -->[ Network first] // no the best soluation 
+// self.addEventListener('fetch', function (event) {
+//     console.log('[sw] Fetching service worker ...', event);
+//     event.respondWith(
+//         fetch(event.request)
+//             .then(function (res) {
+//                 // create a dynammic cahce
+//                 return caches.open(CACHE_DYNAMIC_NAME)
+//                     .then(function (cache) {
+//                         cache.put(event.request.url, res.clone());
+//                         return res;
+//                     })
+//             })
+//             .catch(function (err) {
+//                 return caches.match(event.request)
+
+//             })
+//     );
+// })
