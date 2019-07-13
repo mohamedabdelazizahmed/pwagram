@@ -5,12 +5,15 @@ var sharedMomentsArea = document.querySelector('#shared-moments');
 
 function openCreatePostModal() {
   console.log(".... openCreatePostModal  ....");
-  createPostArea.style.display = 'block';
-    // plz revsion .... show install banner 
+  // createPostArea.style.display = 'block';
+  // setTimeout(function() {
+  createPostArea.style.transform = 'translateY(0)';
+  // }, 1);
+  // plz revsion .... show install banner 
   if (deferredPrompt) {
     deferredPrompt.prompt();
 
-    deferredPrompt.userChoice.then(function(choiceResult) {
+    deferredPrompt.userChoice.then(function (choiceResult) {
       console.log(choiceResult.outcome);
 
       if (choiceResult.outcome === 'dismissed') {
@@ -25,7 +28,8 @@ function openCreatePostModal() {
 }
 
 function closeCreatePostModal() {
-  createPostArea.style.display = 'none';
+  createPostArea.style.transform = 'translateY(100vh)';
+  // createPostArea.style.display = 'none';
 }
 
 shareImageButton.addEventListener('click', openCreatePostModal);
@@ -40,7 +44,7 @@ function onSaveButtonClicked(event) {
   console.log('clicked');
   if ('caches' in window) {
     caches.open('user-requested')
-      .then(function(cache) {
+      .then(function (cache) {
         cache.add('https://httpbin.org/get');
         cache.add('/src/images/sf-boat.jpg');
       });
@@ -59,7 +63,8 @@ function createCard() {
   cardTitle.className = 'mdl-card__title';
   cardTitle.style.backgroundImage = 'url("/src/images/sf-boat.jpg")';
   cardTitle.style.backgroundSize = 'cover';
-  cardTitle.style.height = '180px';
+  // feed.css
+  //cardTitle.style.height = '180px'; 
   cardWrapper.appendChild(cardTitle);
   var cardTitleTextElement = document.createElement('h2');
   cardTitleTextElement.className = 'mdl-card__title-text';
@@ -79,10 +84,10 @@ function createCard() {
 }
 
 fetch('https://httpbin.org/get')
-  .then(function(res) {
+  .then(function (res) {
     return res.json();
   })
-  .then(function(data) {
+  .then(function (data) {
     createCard();
   });
 
@@ -100,12 +105,12 @@ fetch('https://httpbin.org/get')
 
 
 
-  
+
 /**
  * function openCreatePostModal() {
   console.log(".... openCreatePostModal  ....");
   createPostArea.style.display = 'block';
-  // plz revsion .... show install banner 
+  // plz revsion .... show install banner
   if (deferredPrompt) {
     deferredPrompt.prompt();
     deferredPrompt.userChoice.then((choiceResult) => {
