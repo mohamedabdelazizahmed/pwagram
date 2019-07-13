@@ -48,6 +48,65 @@ self.addEventListener('activate', function (event) {
 })
 
 
+// 082 Cache then Network Dynamic Caching [THE BEST STRATGY]
+self.addEventListener('fetch', function (event) {
+    console.log('[sw] Fetching service worker ...', event);
+    // 083 Cache then Network with Offline Support
+    var url = 'https://httpbin.org/get';
+    // request conation  that url
+    if (event.request.url.indexOf(url) > -1) {
+        // Retrieving Items from the Cache...
+        event.respondWith(
+            caches.open(CACHE_DYNAMIC_NAME)
+                .then(function (cache) {
+                    return fetch(event.request)
+                        .then(function (res) {
+                            cache.put(event.request, res.clone())
+                            return res;
+                        })
+                })
+        )
+    } else {
+        event.respondWith(
+            caches.match(event.request)
+                .then(function (response) {
+                    if (response) {
+                        return response;
+                    } else {
+                        // send the original request
+                        return fetch(event.request)
+                            .then(function (res) {
+                                // create a dynammic cahce
+                                return caches.open(CACHE_DYNAMIC_NAME)
+                                    .then(function (cache) {
+                                        cache.put(event.request.url, res.clone());
+                                        return res;
+                                    })
+                            })
+                            //Handling Errors
+                            .catch(function (err) {
+                                console.log(err);
+                                // handeling offline page 
+                                return caches.open(CACHE_STATIC_NAME)
+                                    .then(function (cache) {
+                                        // 084 Cache Strategies Routing
+                                        if (event.request.url.indexOf('/help')) {
+                                            return cache.match('/offline.html');
+                                        }
+                                    });
+                            });
+                    }
+                })
+        )
+
+    }
+
+})
+
+
+
+
+//  ... Default ....
 // self.addEventListener('fetch', function (event) {
 //     console.log('[sw] Fetching service worker ...', event);
 //     // Retrieving Items from the Cache...

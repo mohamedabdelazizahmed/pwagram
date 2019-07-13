@@ -50,7 +50,14 @@ function onSaveButtonClicked(event) {
       });
   }
 }
-
+/**
+ * clearCards
+ */
+function clearCards() {
+  while (sharedMomentsArea.hasChildNodes) {
+    sharedMomentsArea.removeChild(sharedMomentsArea.lastChild);
+  }
+}
 
 /**
  *  create Card using javascript 
@@ -83,13 +90,62 @@ function createCard() {
   sharedMomentsArea.appendChild(cardWrapper);
 }
 
-fetch('https://httpbin.org/get')
+//  081 Strategy Cache then Network
+var url = 'https://httpbin.org/get';
+var networkDataReceived = false;
+
+fetch(url)
   .then(function (res) {
     return res.json();
   })
   .then(function (data) {
+    networkDataReceived = true;
+    console.log("[GET] data form the WEB  ... ", data)
+    clearCards();
     createCard();
   });
+
+
+if ('caches' in window) {
+  caches.match(url)
+    .then(function (response) {
+      if (response) {
+        return response.json();
+      }
+    }).then(function (data) {
+      // the newtworkData is faster ...
+      if (!networkDataReceived) {
+        console.log("[GET] data form the cache  ... ", data)
+        clearCards();
+        createCard();
+      }
+    })
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// fetch('https://httpbin.org/get')
+//   .then(function (res) {
+//     return res.json();
+//   })
+//   .then(function (data) {
+//     createCard();
+//   });
 
 
 
