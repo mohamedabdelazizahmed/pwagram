@@ -74,6 +74,7 @@ function createCard() {
   //cardTitle.style.height = '180px'; 
   cardWrapper.appendChild(cardTitle);
   var cardTitleTextElement = document.createElement('h2');
+  cardTitleTextElement.style.color = 'white';
   cardTitleTextElement.className = 'mdl-card__title-text';
   cardTitleTextElement.textContent = 'San Francisco Trip';
   cardTitle.appendChild(cardTitleTextElement);
@@ -94,16 +95,38 @@ function createCard() {
 var url = 'https://httpbin.org/get';
 var networkDataReceived = false;
 
-fetch(url)
-  .then(function (res) {
+fetch(url, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  },
+  body: JSON.stringify({
+    message: 'Some message'
+  })
+})
+  .then(function(res) {
     return res.json();
   })
-  .then(function (data) {
+  .then(function(data) {
     networkDataReceived = true;
-    console.log("[GET] data form the WEB  ... ", data)
+    console.log('From web', data);
     clearCards();
     createCard();
   });
+
+
+// [GET] USING FETCH FUNCTION
+// fetch(url)
+//   .then(function (res) {
+//     return res.json();
+//   })
+//   .then(function (data) {
+//     networkDataReceived = true;
+//     console.log("[GET] data form the WEB  ... ", data)
+//     clearCards();
+//     createCard();
+//   });
 
 
 if ('caches' in window) {
