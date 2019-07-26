@@ -1,3 +1,7 @@
+
+importScripts('/src/js/idb.js');
+importScripts('/src/js/utility.js');
+
 var CACHE_STATIC_NAME = 'static-10';
 var CACHE_DYNAMIC_NAME = 'dynamic-4';
 var STATIC_FILES = [
@@ -6,17 +10,39 @@ var STATIC_FILES = [
     '/offline.html',
     '/src/js/app.js',
     '/src/js/feed.js',
+    '/src/js/idb.js',
     '/src/js/promise.js',
     '/src/js/fetch.js',
     '/src/js/material.min.js',
     '/src/css/app.css',
     '/src/css/feed.css',
-    '/src/css/help.css',
     '/src/images/main-image.jpg',
     'https://fonts.googleapis.com/css?family=Roboto:400,700',
     'https://fonts.googleapis.com/icon?family=Material+Icons',
-    'https://cdnjs.cloudflare.com/ajax/libs/material-design-lite/1.3.0/material.indigo-pink.min.css',
+    'https://cdnjs.cloudflare.com/ajax/libs/material-design-lite/1.3.0/material.indigo-pink.min.css'
 ];
+/**
+ *  USE  IDBINDEX and create posts store copy for utility.js
+ */
+// var dbPromise = idb.open('posts-store', 1, function (db) {
+//     console.log('db', db);
+//     // checking if create posts before created ...
+//     if (!db.objectStoreNames.contains('posts')) {
+//         // create posts as table in nosql .... and set primarykey
+//         db.createObjectStore('posts', { keyPath: 'id' })
+
+//     }
+// })
+
+
+
+
+
+
+
+
+
+
 // function trimCache(cacheName, maxItems) {
 //     caches.keys()
 //         .then(function (cache) {
@@ -50,15 +76,15 @@ self.addEventListener('activate', function (event) {
     // Different Cache Versions Cleanup
     event.waitUntil(
         caches.keys()
-        .then(function (keyList) {
-            return Promise.all(keyList.map(function (key) {
-                if (key !== CACHE_STATIC_NAME && key !== CACHE_DYNAMIC_NAME) {
-                    console.log('[sw] Removing Old Cache ...', key);
-                    return caches.delete(key);
-                }
-            }))
-        })
-    );   
+            .then(function (keyList) {
+                return Promise.all(keyList.map(function (key) {
+                    if (key !== CACHE_STATIC_NAME && key !== CACHE_DYNAMIC_NAME) {
+                        console.log('[sw] Removing Old Cache ...', key);
+                        return caches.delete(key);
+                    }
+                }))
+            })
+    );
     return self.clients.claim();
 });
 /**
@@ -78,33 +104,58 @@ function isInArray_v1(string, array) {
 function isInArray(string, array) {
     var cachePath;
     if (string.indexOf(self.origin) === 0) { // request targets domain where we serve the page from (i.e. NOT a CDN)
-      console.log('matched ', string);
-      cachePath = string.substring(self.origin.length); // take the part of the URL AFTER the domain (e.g. after localhost:8080)
+        console.log('matched ', string);
+        cachePath = string.substring(self.origin.length); // take the part of the URL AFTER the domain (e.g. after localhost:8080)
     } else {
-      cachePath = string; // store the full request (for CDNs)
+        cachePath = string; // store the full request (for CDNs)
     }
     return array.indexOf(cachePath) > -1;
-  }
+}
 
 // 082 Cache then Network Dynamic Caching [THE BEST STRATGY]
 self.addEventListener('fetch', function (event) {
     console.log('[sw] Fetching service worker ...', event);
     // 083 Cache then Network with Offline Support
-    var url = 'https://httpbin.org/get';
-
+    // var url = 'https://httpbin.org/get';
+    var url = 'https://pwagram-557a2.firebaseio.com/posts';
     // request conation  that url
     if (event.request.url.indexOf(url) > -1) {
-        // Retrieving Items from the Cache...
         event.respondWith(
-            caches.open(CACHE_DYNAMIC_NAME)
-                .then(function (cache) {
-                    return fetch(event.request)
-                        .then(function (res) {
-                            cache.put(event.request, res.clone());
-
-                            return res;
+            fetch(event.request)
+                .then(function (res) {
+                    var clonedRes = res.clone();
+                    console.log(" clonedRes ", clonedRes);
+                    // clear all Data in IndexDB Before Write Data in IndexDB
+                    clearAllData('posts')
+                        .then(function () {
+                            return clonedRes.json();
+                        })
+                        .then(function (data) {
+                            for (var key in data) {
+                                if (data.hasOwnProperty(key)) {
+                                    writeData('posts', data[key])
+                                }
+                            }
                         });
+                    // .....  Before Created clearAllData IndexDB ...... 
+                    // clonedRes.json().then(function (data) {
+                    //     // object  conatin keys as 
+                    //     console.log("[data] In FireBase", data);
+                    //     for (const key in data) {
+                    //         if (data.hasOwnProperty(key)) {
+                    //             // var tx = db.transaction('posts', 'readwrite');
+                    //             // var store = tx.objectStore('posts');
+                    //             // store.put(data[key]);
+                    //             // // close transaction after saved
+                    //             // return tx.complete;
+
+                    //             writeData('posts', data[key]);
+                    //         }
+                    //     }
+                    // })
+                    return res;
                 })
+
         );
     }
     // new RegExp('\\b' + STATIC_FILES.join('\\b|\\b') + '\\b').test(event.req.url)
@@ -238,3 +289,51 @@ self.addEventListener('fetch', function (event) {
 //             })
 //     );
 // })
+
+
+/**
+ *  calling event sync in serviceworker when established connection 
+ */
+self.addEventListener('sync', function(event) {
+    console.log('[Service Worker] Background syncing', event);
+    // when differnt tags && different sync-tags use switch case in different tags
+    if (event.tag === 'sync-new-posts') {
+      console.log('[Service Worker] Syncing new Posts');
+      event.waitUntil(
+        readAllData('sync-posts')
+          .then(function(data) {
+            for (var dt of data) {
+              fetch('https://pwagram-557a2.firebaseio.com/posts.json', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                  id: dt.id,
+                  title: dt.title,
+                  location: dt.location,
+                  image: 'https://firebasestorage.googleapis.com/v0/b/pwagram-99adf.appspot.com/o/sf-boat.jpg?alt=media&token=19f4770c-fc8c-4882-92f1-62000ff06f16'
+                })
+              })
+                .then(function(res) {
+                  console.log('Sent data', res);
+                // checking if res is ok ...
+                  if (res.ok) {
+                    res.json()
+                      .then(function(resData) {
+                       // Deleteing every post in indexdb after saving in firbase ...
+                          deleteItemFromData('sync-posts', resData.id);
+                      });
+                  }
+                })
+                .catch(function(err) {
+                  console.log('Error while sending data', err);
+                });
+            }
+  
+          })
+      );
+    }
+  });
+  
