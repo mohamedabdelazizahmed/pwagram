@@ -294,46 +294,124 @@ self.addEventListener('fetch', function (event) {
 /**
  *  calling event sync in serviceworker when established connection 
  */
-self.addEventListener('sync', function(event) {
+self.addEventListener('sync', function (event) {
     console.log('[Service Worker] Background syncing', event);
     // when differnt tags && different sync-tags use switch case in different tags
     if (event.tag === 'sync-new-posts') {
-      console.log('[Service Worker] Syncing new Posts');
-      event.waitUntil(
-        readAllData('sync-posts')
-          .then(function(data) {
-            for (var dt of data) {
-              fetch('https://pwagram-557a2.firebaseio.com/posts.json', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Accept': 'application/json'
-                },
-                body: JSON.stringify({
-                  id: dt.id,
-                  title: dt.title,
-                  location: dt.location,
-                  image: 'https://firebasestorage.googleapis.com/v0/b/pwagram-99adf.appspot.com/o/sf-boat.jpg?alt=media&token=19f4770c-fc8c-4882-92f1-62000ff06f16'
+        console.log('[Service Worker] Syncing new Posts');
+        event.waitUntil(
+            readAllData('sync-posts')
+                .then(function (data) {
+                    for (var dt of data) {
+                        let url_previous = 'https://pwagram-557a2.firebaseio.com/posts.json';
+                        let url_current = 'https://us-central1-pwagram-557a2.cloudfunctions.net/storePostData';
+                        fetch(url_current, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                id: dt.id,
+                                title: dt.title,
+                                location: dt.location,
+                                image: 'https://firebasestorage.googleapis.com/v0/b/pwagram-99adf.appspot.com/o/sf-boat.jpg?alt=media&token=19f4770c-fc8c-4882-92f1-62000ff06f16'
+                            })
+                        })
+                            .then(function (res) {
+                                console.log('Sent data', res);
+                                // checking if res is ok ...
+                                if (res.ok) {
+                                    res.json()
+                                        .then(function (resData) {
+                                            // Deleteing every post in indexdb after saving in firbase ...
+                                            console.log(resData.id);
+                                            deleteItemFromData('sync-posts', resData.id);
+                                        });
+                                }
+                            })
+                            .catch(function (err) {
+                                console.log('Error while sending data', err);
+                            });
+                    }
+
                 })
-              })
-                .then(function(res) {
-                  console.log('Sent data', res);
-                // checking if res is ok ...
-                  if (res.ok) {
-                    res.json()
-                      .then(function(resData) {
-                       // Deleteing every post in indexdb after saving in firbase ...
-                          deleteItemFromData('sync-posts', resData.id);
-                      });
-                  }
-                })
-                .catch(function(err) {
-                  console.log('Error while sending data', err);
-                });
-            }
-  
-          })
-      );
+        );
     }
-  });
-  
+});
+
+
+
+
+/**
+ *  Notification is system feature  Not Display in WebApplication it's not HTML 
+ *  Becouse you can get Notification in Android and ios if application is Colsed 
+ *  yes, implement this action in Background Application in serviceworker   
+ *  notificationclick New Event in service Worker 
+ */
+self.addEventListener('notificationclick', function (event) {
+    // which  notification work 
+    var notification = event.notification;
+    // which action was clicked 
+    var action = event.action;
+
+    console.log("notification  ", notification);
+    console.log("action  ", action);
+    // confirm action id in button 
+    if (action === 'confirm') {
+        console.log('Confirm was chosen');
+        notification.close();
+    } else {
+        console.log(action);
+        event.waitUntil(
+            clients.matchAll()
+                .then(function (clis) {
+                    var client = clis.find(function (c) {
+                        return c.visibilityState === 'visible';
+                    });
+
+                    if (client !== undefined) {
+                        //   client.navigate('http://localhost:8080');
+                        client.navigate(notification.data.url);
+                        client.focus();
+                    } else {
+                        // clients.openWindow('http://localhost:8080');
+                        clients.openWindow(notification.data.url);
+                    }
+                    notification.close();
+                })
+        );
+    }
+});
+
+
+
+/**
+ * using push event in notification push becouse maybe website is closed 
+ *  sw is probely may working 
+ */
+
+self.addEventListener('push', function (event) {
+    console.log('Push Notification received', event);
+
+    var data = { title: 'New!', content: 'Something new happened!', openUrl: '/' };
+
+    if (event.data) {
+        console.log("event.data ", event.data);
+        data = JSON.parse(event.data.text());
+        console.log("data ", data);
+    }
+
+    var options = {
+        body: data.content,
+        icon: '/src/images/icons/app-icon-96x96.png',
+        badge: '/src/images/icons/app-icon-96x96.png',
+        data: {
+            url: data.openUrl
+        }
+    };
+
+    event.waitUntil(
+        self.registration.showNotification(data.title, options)
+    );
+});

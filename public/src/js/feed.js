@@ -129,7 +129,8 @@ if ('indexedDB' in window) {
  */
 function sendData() {
   console.log("... Send Data ....");
-  fetch('https://pwagram-557a2.firebaseio.com/posts.json', {
+  var url_current =  'https://us-central1-pwagram-557a2.cloudfunctions.net/storePostData';
+  fetch(url_current, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
